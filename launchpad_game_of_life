@@ -1,0 +1,146 @@
+#!/usr/bin/env ruby
+# launchpad_game_of_life: A simple implementation of Conway's Game of Life
+# displayed and controlled on a Novation Launchpad. The top left button (up
+# arrow) pauses and resumes the game, the left and right arrows make it go
+# slower and faster, respectively.
+#
+# This is not a particularly elegant implementation of Game of Life,
+# the emphasis is on testing the Launchpad.
+#
+# Copyright (c) 2014 Kimmo Kulovesi, http://arkku.com/
+# Use and distribute freely.
+# Mark modified copies as such, do not remove the original attribution.
+# ABSOLUTELY NO WARRANTY - USE AT YOUR OWN RISK ONLY!
+##############################################################################
+require_relative 'kk_launchpad'
+
+class LaunchpadGameOfLife
+
+  ROWS = 8
+  COLUMNS = 8
+  KEEP_LIVING_NEXT_GENERATION = { 2 => true, 3 => true }
+  SPAWN_NEXT_GENERATION = { 3 => true }
+  COLOR_FOR_STATE = {
+    -1 => [ 1, 0 ], # dead
+     0 => [ 3, 0 ], # just died
+     1 => [ 2, 3 ], # just born
+     2 => [ 0, 3 ]  # alive
+    }
+
+  def initialize(launchpad)
+    @lp = launchpad
+    reset
+  end
+
+  def cell_alive?(column, row)
+    @cell_state[(row % ROWS) * ROWS + (column % COLUMNS)] > 0
+  end
+
+  def toggle_cell(column, row)
+    i = (row % ROWS) * ROWS + (column % COLUMNS)
+    @cell_state[i] = (@cell_state[i] <= 0) ? 2 : -1
+  end
+
+  def next_state(column, row)
+    live_count = 0
+    [ [-1,  1], [0,  1],  [1,  1],
+      [-1,  0],           [1,  0],
+      [-1, -1], [0, -1],  [1, -1] ].each do |xo, yo|
+      live_count += cell_alive?(column + xo, row + yo) ? 1 : 0
+    end
+    if cell_alive?(column, row)
+      KEEP_LIVING_NEXT_GENERATION[live_count] ? 2 : 0
+    else
+      SPAWN_NEXT_GENERATION[live_count] ? 1 : -1
+    end
+  end
+
+  def step
+    cells = Array.new(ROWS * COLUMNS, false)
+    0.upto(ROWS - 1) do |row|
+      0.upto(COLUMNS - 1) do |column|
+        cells[row * ROWS + column] = next_state(column, row)
+      end
+    end
+    @cell_state = cells
+    @iteration += 1
+    upload_state
+  end
+
+  def upload_state
+    0.upto(ROWS - 1) do |row|
+      0.upto(COLUMNS - 1) do |column|
+        state = @cell_state[row * ROWS + column]
+        @lp.set_led_colors(column, row, *COLOR_FOR_STATE[state])
+      end
+    end
+    @lp.set_led_colors(0, -1, *((@iteration % 2) == 0) ? [1,3] : [3,3])
+    @lp.update
+    @lp.flip_buffers
+  end
+
+  def reset
+    @lp.reset
+    @lp.set_duty_cycle(1, 4)
+    @lp.double_buffer = true
+    @lp.offline_updates = true
+    @iteration = 0
+    @cell_state = Array.new(ROWS * COLUMNS, -1)
+    upload_state
+  end
+
+end
+
+lp = LaunchpadMIDI.device
+game = LaunchpadGameOfLife.new(lp)
+mutex = Mutex.new
+fps = nil
+old_fps = 3.0
+
+input_thread = Thread.start do
+  loop do
+    lp.each_action do |column, row, pressed|
+      next unless pressed
+      mutex.synchronize do
+        if row == -1
+          case column
+          when 0
+            if fps
+              old_fps = fps
+              fps = nil
+            else
+              fps = old_fps
+            end
+          when 2
+            fps -= 1.0 if fps && fps > 1.0
+          when 3
+            fps += 1.0 if fps && fps < 20.0
+          else
+          end
+        else
+          game.toggle_cell(column, row)
+          game.upload_state
+        end
+      end
+    end
+    sleep 0.04
+  end
+end
+
+begin
+  loop do
+    delay = 0.5
+    mutex.synchronize do
+      if fps
+        game.step
+        delay = 1.0 / fps.to_f
+      else
+        delay = 0.5
+      end
+    end
+    sleep delay
+  end
+ensure
+  input_thread.kill
+  lp.reset
+end

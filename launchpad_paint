@@ -1,0 +1,98 @@
+#!/usr/bin/env ruby
+# launchpad_paint: A simple test of interacting with the Novation Launchpad.
+# The round buttons select the active color. Square pads turn the selected
+# color when pressed.
+#
+# Copyright (c) 2014 Kimmo Kulovesi, http://arkku.com/
+# Use and distribute freely.
+# Mark modified copies as such, do not remove the original attribution.
+# ABSOLUTELY NO WARRANTY - USE AT YOUR OWN RISK ONLY!
+##############################################################################
+require_relative 'kk_launchpad'
+
+class LaunchpadPaint
+  TOP_ROW       = [2,1], [1,1], [1,2], [1,3], [2,3], [2,2], [3,2], [3,1]
+  RIGHT_COLUMN  = [1,0], [2,0], [3,0], [0,1], [0,2], [0,3], [3,3], [0,0]
+
+  def initialize(launchpad)
+    @lp = launchpad
+    @selected_color = nil
+    reset
+  end
+
+  def select_color_at(column, row)
+    color = nil
+    if row == -1
+      color = TOP_ROW[column % 8]
+    elsif column == 8
+      color = RIGHT_COLUMN[row % 8]
+    end
+    if color
+      if @selected_color
+        @lp.set_led_colors(*(@selected_color.flatten), false)
+        if @selected_color.last == color && color == [0,0]
+          reset
+          return
+        end
+      end
+      @selected_color = [ column, row, color ]
+      @lp.set_led_colors(*(@selected_color.flatten), true)
+    end
+    color
+  end
+
+  def colors
+    return (@selected_color.last || [0,0])
+  end
+
+  def paint(column, row, color = colors)
+    i = row * 8 + column
+    old_color = @grid[i]
+    color = [0,0] if old_color == color
+    @grid[i] = color
+    @lp.set_led_colors(column, row, *color)
+  end
+
+  def action(column, row, pressed)
+    return unless pressed
+    if row >= 0 && column < 8
+      paint(column, row)
+    else
+      select_color_at(column, row)
+    end
+  end
+
+  def reset
+    @lp.reset
+    @lp.flashing = true
+    @grid = Array.new(64, [0,0])
+    TOP_ROW.each_with_index do |color, column|
+      @lp.set_led_colors(column, -1, *color)
+    end
+    RIGHT_COLUMN.each_with_index do |color, row|
+      @lp.set_led_colors(8, row, *color)
+    end
+    if @selected_color
+      column, row = @selected_color[0], @selected_color[1]
+      @selected_color = nil
+      select_color_at(column, row)
+    else
+      select_color_at(8, 6)
+    end
+  end
+
+end
+
+lp = LaunchpadMIDI.device
+paint = LaunchpadPaint.new(lp)
+
+begin
+  loop do
+    lp.each_action do |*action|
+      paint.action(*action)
+    end
+    sleep(0.04)
+  end
+ensure
+  lp.reset
+end
