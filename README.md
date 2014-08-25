@@ -184,7 +184,7 @@ To receive input from the Launchpad it is possible to either skip
 this library altogether and simply access it like any other MIDI input
 device. However, for mapping MIDI messages to column/row coordinates,
 the library provides the convenience method `each_action`, which yields
-each currently pending button press:
+each currently pending button press or release:
 
     loop do
       lp.each_action do |column, row, pressed|

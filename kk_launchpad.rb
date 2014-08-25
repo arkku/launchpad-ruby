@@ -424,11 +424,12 @@ if __FILE__ == $0
     lp.update
     sleep(2.0)
 
+    # Flash manually by flipping buffers
     lp.flashing = false
+    lp.double_buffer = true
+    lp.set_all_off
+    lp.update
     [ true, false ].each do |condition|
-      lp.set_all_off
-      lp.update
-      sleep(1.0)
       0.upto(7) do |row|
         0.upto(7) do |column|
           if ((row % 2) == (column % 2)) == condition
@@ -439,7 +440,11 @@ if __FILE__ == $0
         end
       end
       lp.update
-      sleep(1.5)
+      lp.flip_buffers(false)
+    end
+    5.times do
+      lp.flip_buffers(false)
+      sleep(0.5)
     end
 
   ensure
