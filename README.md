@@ -1,5 +1,5 @@
-kk_launchpad
-============
+launchpad-ruby
+==============
 
 A small library for interacting with the Novation Launchpad MIDI
 controller using Ruby. Supports LED setting, duty cycle setting,
@@ -39,7 +39,7 @@ Setting LEDs (the arguments are `column`, `row`, `red`, and `green`):
 
     lp.set_led_colors(0, 0, 3, 0)   # top left square pad red
     lp.set_led_colors(7, 7, 0, 3)   # bottom right square pad green
-    lp.set_led_colors(8, 7, 2, 2)   # bottom right round button amber
+    lp.set_led_colors(8, 7, 3, 1)   # bottom right round button amber
     lp.set_led_colors(7, -1, 3, 3)  # "mixer" button yellow
 
 The square pads occupy rows `0..7` and columns `0..7`. On rows `0..7` the
