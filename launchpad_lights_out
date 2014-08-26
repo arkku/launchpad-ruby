@@ -91,7 +91,8 @@ class LaunchpadLightsOut
     while solved?
       # If the generated locations were unique, there would
       # be exactly `max_moves` moves, but now they may
-      # overlap
+      # overlap and thus result in less required moves to
+      # solve the puzzle
       max_moves.times do
         x, y = rand(COLUMNS), rand(ROWS)
         toggle_all_adjacent(x, y)
@@ -139,7 +140,7 @@ game = LaunchpadLightsOut.new(lp)
 
 begin
   keep_running = true
-  while keep_running do
+  while keep_running
     lp.each_action do |column, row, pressed|
       next unless pressed
       begin
