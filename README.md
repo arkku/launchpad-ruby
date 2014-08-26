@@ -2,21 +2,61 @@ launchpad-ruby
 ==============
 
 A small library for interacting with the Novation Launchpad MIDI
-controller using Ruby. Supports LED setting, duty cycle setting,
-double buffering, flashing, and offline updates with rapid uploads.
+controller using Ruby. Supports basically all features on the Launchpad,
+including LED setting, duty cycle setting, double buffering, flashing,
+and rapid updates.
 
 Currently uses [unimidi](https://github.com/arirusso/unimidi) for
 cross-platform MIDI access, but the MIDI library can easily be changed
 by redefining two or three methods (`send_midi`, `each_incoming_message`,
 and optionally `LaunchpadMIDI.device`).
 
-Some example programs, such as Game of Life on the Launchpad, are
-included.
-
 ~ [Kimmo Kulovesi](http://arkku.com/), 2014-08-24
 
-Usage by Example
+Example Programs
 ================
+
+The library comes with a number of small example programs demonstrating
+its use in practice.
+
+launchpad_paint
+---------------
+
+The round buttons select colors and the square pads turn to the selected
+color (indicated by flashing round button) when pressed. All possible
+colors are available, making this a handy tool for planning color patterns
+for other programs.
+
+launchpad_game_of_life
+----------------------
+
+[Conway's Game of Life](http://en.wikipedia.org/wiki/Conway's_Game_of_Life) 
+implemented on a wrap-around 8×8 grid. The round buttons on the side choose
+different color schemes. The top left round button toggles between play/pause,
+and the third and fourth buttons slow down and speed up the game, 
+respectively. The rightmost round button on the top row toggles random cells. 
+Pressing square pads toggle them between dead/alive (the game may need to be
+paused to actually see effects since a lone cell dies).
+
+launchpad_lights_out
+--------------------
+
+The (Lights Out puzzle)[http://en.wikipedia.org/wiki/Lights_Out_(game)] on
+a 5×5 grid. Dark red square pads indicate "dark" and yellow square pads
+indicate "light". The objective is to turn off all the lights (i.e., make
+all yellow pads red). Pressing either a light or dark pad toggles it and
+_all of its surrounding pads_ to the opposite state.
+
+To start the game, press one of the round buttons on the side to choose
+a difficulty level. The highest difficulty is on top. These buttons
+also restart the game mid-play. The round pads on the top row count the
+number of moves taken (in binary).
+
+The program generates random, but always solvable, puzzles.
+
+
+Library Usage by Example
+========================
 
 Basic setup
 -----------
