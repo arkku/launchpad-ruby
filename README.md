@@ -5,10 +5,10 @@ A small library for interacting with the Novation Launchpad MIDI
 controller using Ruby. Supports LED setting, duty cycle setting,
 double buffering, flashing, and offline updates with rapid uploads.
 
-Currently uses `unimidi` for cross-platform MIDI access, but the
-MIDI library can easily be changed by redefining two or three
-methods (`send_midi`, `each_incoming_message`, and optionally
-`LaunchpadMIDI.device`).
+Currently uses [unimidi](https://github.com/arirusso/unimidi) for
+cross-platform MIDI access, but the MIDI library can easily be changed
+by redefining two or three methods (`send_midi`, `each_incoming_message`,
+and optionally `LaunchpadMIDI.device`).
 
 Some example programs, such as Game of Life on the Launchpad, are
 included.
@@ -49,6 +49,12 @@ row `-1` (negative one), with columns `0..7`.
 The red and green LEDs can each be set to four different brightness
 values: `0..3`, for a total of 15 colors of light (both zero is the
 off state).
+
+Other methods for setting LEDs include:
+
+    lp.set_led_off(0, 0)          # top left square pad off
+    lp.set_all_off                # all off without resetting
+    lp.set_led(0, 0, 0x3C)        # set raw byte (see programmer's manual)
 
 
 Double Buffering
@@ -194,5 +200,14 @@ each currently pending button press or release:
           puts "Button at (#{column}, #{row}) up"
         end
       end
+    end
+
+If another library is used, the method `parse_midi_message` can be used
+to parse an array of bytes (beginning with the status byte and already
+stripped off any interspersed realtime messages):
+
+    column, row, pressed = lp.parse_midi_message([ 0x90, 0x40, 0xFF])
+    unless column.nil?
+      # …
     end
 
