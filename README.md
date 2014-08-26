@@ -41,7 +41,7 @@ paused to actually see effects since a lone cell dies).
 launchpad_lights_out
 --------------------
 
-The (Lights Out puzzle)[http://en.wikipedia.org/wiki/Lights_Out_(game)] on
+The [Lights Out puzzle](http://en.wikipedia.org/wiki/Lights_Out_(game)) on
 a 5×5 grid. Dark red square pads indicate "dark" and yellow square pads
 indicate "light". The objective is to turn off all the lights (i.e., make
 all yellow pads red). Pressing either a light or dark pad toggles it and
