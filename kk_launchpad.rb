@@ -1,5 +1,5 @@
 #!/usr/bin/env ruby
-# launchpad.rb: A Ruby library for the Novation Launchpad.
+# kk_launchpad.rb: A Ruby library for the Novation Launchpad.
 # The author is in no way affiliated with Novation DMS Ltd, this is
 # an unofficial library made based on publicly released documentation.
 #
