@@ -13,7 +13,6 @@
 #
 # The round buttons on top count the number of moves taken in binary.
 #
-#
 # Copyright (c) 2014 Kimmo Kulovesi, http://arkku.com/
 # Use and distribute freely.
 # Mark modified copies as such, do not remove the original attribution.
@@ -30,9 +29,8 @@ class LaunchpadLightsOut
   LIGHT_COLOR = [ 3, 2 ]
   DARK_COLOR = [ 1, 0 ]
   COUNTER_COLOR = [ 0, 2 ]
-  DIFFICULTY_COLORS = [
-    [ 2, 0 ], [ 3, 1 ], [ 2, 1 ], [ 2, 2 ],
-    [ 2, 3 ], [ 1, 3 ], [ 0, 3 ] ]
+  DIFFICULTY_COLORS = [ [ 2, 0 ], [ 3, 1 ], [ 2, 1 ], [ 2, 2 ],
+                        [ 2, 3 ], [ 1, 3 ], [ 0, 3 ] ]
 
   def initialize(launchpad)
     @lp = launchpad
@@ -89,10 +87,7 @@ class LaunchpadLightsOut
   def new_puzzle(max_moves = 8)
     clear
     while solved?
-      # If the generated locations were unique, there would
-      # be exactly `max_moves` moves, but now they may
-      # overlap and thus result in less required moves to
-      # solve the puzzle
+      # Generate the puzzle by toggling lights; this ensures solvability
       max_moves.times do
         x, y = rand(COLUMNS), rand(ROWS)
         toggle_all_adjacent(x, y)
@@ -130,7 +125,6 @@ class LaunchpadLightsOut
     else
       0.upto(7) {|row| @lp.set_led_colors(8, row, 0, 0) }
     end
-    #@lp.update
   end
 
 end
@@ -143,25 +137,24 @@ begin
   while keep_running
     lp.each_action do |column, row, pressed|
       next unless pressed
-      begin
-        if row == -1
-          # top row of round buttons
-        elsif column == 8
-          if row == 7
-            keep_running = false
-          else
-            game.new_puzzle(LaunchpadLightsOut::ROWS *
-                            LaunchpadLightsOut::COLUMNS / (1 + row))
-                            
-          end
+      if row == -1
+        # top row of round buttons
+      elsif column == 8
+        # side row of round buttons
+        if row == 7
+          # quit on the lowest side button
+          keep_running = false
         else
-          game.pad_pressed(column, row)
+          # reset / difficulty selection
+          game.new_puzzle(LaunchpadLightsOut::ROWS *
+                          LaunchpadLightsOut::COLUMNS / (1 + row))
+                          
         end
-      rescue Exception => e
-        $stderr.puts "Input error: #{e}\n\t#{e.backtrace.join("\t\n")}"
+      else
+        game.pad_pressed(column, row)
       end
     end
-    sleep 0.02
+    sleep 0.05 # in case input routine is non-blocking
   end
 ensure
   lp.reset
