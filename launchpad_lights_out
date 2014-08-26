@@ -1,0 +1,160 @@
+#!/usr/bin/env ruby
+# launchpad_lights_out: A simple version of the Lights Out puzzle for the
+# Novation Launchpad MIDI controller.
+#
+# The objective is to turn off all the lights on a 5×5 grid. Pressing a
+# pad toggles it and all of its surrounding pads between light (yellow)
+# and dark (red). The puzzle is solved when all pads are "dark" (red).
+#
+# The game can be restarted by pressing one of the round buttons on the
+# right side of the Launchpad. The button pressed chooses the difficulty
+# level, hardest being on top and easiest being on bottom. (The very easiest
+# one simply quits the game, so there are 7 actual difficulty levels. =)
+#
+# The round buttons on top count the number of moves taken in binary.
+#
+#
+# Copyright (c) 2014 Kimmo Kulovesi, http://arkku.com/
+# Use and distribute freely.
+# Mark modified copies as such, do not remove the original attribution.
+# ABSOLUTELY NO WARRANTY - USE AT YOUR OWN RISK ONLY!
+##############################################################################
+require_relative 'kk_launchpad'
+
+class LaunchpadLightsOut
+
+  ROW_OFFSET = 1
+  COLUMN_OFFSET = 1
+  ROWS = 5
+  COLUMNS = 5
+  LIGHT_COLOR = [ 3, 2 ]
+  DARK_COLOR = [ 1, 0 ]
+  COUNTER_COLOR = [ 0, 2 ]
+  DIFFICULTY_COLORS = [
+    [ 2, 0 ], [ 3, 1 ], [ 2, 1 ], [ 2, 2 ],
+    [ 2, 3 ], [ 1, 3 ], [ 0, 3 ] ]
+
+  def initialize(launchpad)
+    @lp = launchpad
+    reset
+  end
+
+  # Is the light on?
+  def light_on?(column, row)
+    @light_state[(row * ROWS) + column]
+  end
+
+  # Toggle a single light (not the adjacent ones)
+  def toggle_light(column, row)
+    return if row < 0 || row >= ROWS || column < 0 || column >= COLUMNS
+    i = (row * ROWS) + column
+    @light_state[i] = !@light_state[i]
+  end
+
+  # Toggle the light and all adjacent lights
+  def toggle_all_adjacent(column, row)
+    return false if row < 0 || row >= ROWS || column < 0 || column >= COLUMNS
+    [ [-1,  1], [0,  1],  [1,  1],
+      [-1,  0], [0,  0],  [1,  0],
+      [-1, -1], [0, -1],  [1, -1] ].each do |xo, yo|
+        toggle_light(column + xo, row + yo)
+    end
+    true
+  end
+
+  # React to the press of a Launchpad pad (coordinates are relative to the
+  # Launchpad, not to the game grid)
+  def pad_pressed(column, row)
+    return if solved?
+    column -= COLUMN_OFFSET
+    row -= ROW_OFFSET
+    if toggle_all_adjacent(column, row)
+      @press_count += 1
+      upload_state
+    end
+  end
+
+  def solved?
+    @light_state.count(true) == 0
+  end
+
+  # Reset the game with a new, random, solvable puzzle
+  def new_puzzle(max_moves = 8)
+    @press_count = 0
+    @light_state = Array.new(ROWS * COLUMNS, false)
+    while solved?
+      # If the generated locations were unique, there would
+      # be exactly `max_moves` moves, but now they may
+      # overlap
+      max_moves.times do
+        x, y = rand(COLUMNS), rand(ROWS)
+        toggle_all_adjacent(x, y)
+      end
+    end
+    upload_state
+  end
+
+  # Reset the game and the Launchpad
+  def reset
+    @lp.reset
+    @lp.set_duty_cycle(1, 4)
+    @lp.flashing = true
+    new_puzzle
+  end
+
+  # Upload the current state to the Launchpad
+  def upload_state
+    0.upto(ROWS - 1) do |row|
+      0.upto(COLUMNS - 1) do |column|
+        @lp.set_led_colors(column + COLUMN_OFFSET, row + ROW_OFFSET,
+                           *(light_on?(column, row) ? LIGHT_COLOR : DARK_COLOR))
+      end
+    end
+    column = 0
+    ('%08b' % (@press_count & 0xFF)).split('').each do |bit|
+      @lp.set_led_colors(column, -1, *((bit == '1') ? COUNTER_COLOR : [0,0]))
+      column += 1
+    end
+    if solved?
+      DIFFICULTY_COLORS.each_with_index do |color, row|
+        @lp.set_led_colors(8, row, *color, true)
+      end
+    else
+      0.upto(7) {|row| @lp.set_led_colors(8, row, 0, 0) }
+    end
+    #@lp.update
+  end
+
+end
+
+lp = LaunchpadMIDI.device
+game = LaunchpadLightsOut.new(lp)
+
+begin
+  keep_running = true
+  while keep_running do
+    lp.each_action do |column, row, pressed|
+      next unless pressed
+      begin
+        if row == -1
+          # top row of round buttons
+        elsif column == 8
+          if row == 7
+            keep_running = false
+          else
+            game.new_puzzle(LaunchpadLightsOut::ROWS *
+                            LaunchpadLightsOut::COLUMNS / (1 + row))
+                            
+          end
+        else
+          game.pad_pressed(column, row)
+        end
+      rescue Exception => e
+        $stderr.puts "Input error: #{e}\n\t#{e.backtrace.join("\t\n")}"
+      end
+    end
+    sleep 0.02
+  end
+ensure
+  lp.reset
+end
