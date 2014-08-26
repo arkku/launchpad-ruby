@@ -74,14 +74,20 @@ class LaunchpadLightsOut
     end
   end
 
+  # Is the puzzle solved?
   def solved?
     @light_state.count(true) == 0
   end
 
-  # Reset the game with a new, random, solvable puzzle
-  def new_puzzle(max_moves = 8)
+  # Clear the game state
+  def clear
     @press_count = 0
     @light_state = Array.new(ROWS * COLUMNS, false)
+  end
+
+  # Start the game with a new, random, solvable puzzle
+  def new_puzzle(max_moves = 8)
+    clear
     while solved?
       # If the generated locations were unique, there would
       # be exactly `max_moves` moves, but now they may
@@ -99,7 +105,8 @@ class LaunchpadLightsOut
     @lp.reset
     @lp.set_duty_cycle(1, 4)
     @lp.flashing = true
-    new_puzzle
+    clear
+    upload_state
   end
 
   # Upload the current state to the Launchpad
