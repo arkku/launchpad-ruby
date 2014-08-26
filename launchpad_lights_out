@@ -3,7 +3,7 @@
 # Novation Launchpad MIDI controller.
 #
 # The objective is to turn off all the lights on a 5×5 grid. Pressing a
-# pad toggles it and all of its surrounding pads between light (yellow)
+# pad toggles it and the four adjacent pads between light (yellow)
 # and dark (red). The puzzle is solved when all pads are "dark" (red).
 #
 # The game can be restarted by pressing one of the round buttons on the
@@ -52,9 +52,9 @@ class LaunchpadLightsOut
   # Toggle the light and all adjacent lights
   def toggle_all_adjacent(column, row)
     return false if row < 0 || row >= ROWS || column < 0 || column >= COLUMNS
-    [ [-1,  1], [0,  1],  [1,  1],
+    [           [0,  1],
       [-1,  0], [0,  0],  [1,  0],
-      [-1, -1], [0, -1],  [1, -1] ].each do |xo, yo|
+                [0, -1],           ].each do |xo, yo|
         toggle_light(column + xo, row + yo)
     end
     true

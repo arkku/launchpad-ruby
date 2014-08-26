@@ -45,7 +45,7 @@ The [Lights Out puzzle](http://en.wikipedia.org/wiki/Lights_Out_(game)) on
 a 5×5 grid. Dark red square pads indicate "dark" and yellow square pads
 indicate "light". The objective is to turn off all the lights (i.e., make
 all yellow pads red). Pressing either a light or dark pad toggles it and
-_all of its surrounding pads_ to the opposite state.
+_the four adjacent pads_ (north, south, east, west) to the opposite state.
 
 To start the game, press one of the round buttons on the side to choose
 a difficulty level. The highest difficulty is on top. These buttons
