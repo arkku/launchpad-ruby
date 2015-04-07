@@ -20,7 +20,7 @@ require 'unimidi'
 
 class LaunchpadMIDI
 
-  DEVICE_NAME_RE = /^Novation DMS Ltd Launchpad.*/
+  DEVICE_NAME_RE = /^(Novation|Focusrite).* Launchpad.*/
   DRUM_RACK_NOTES = [
     64, 65, 66, 67,  96, 97, 98, 99,   100,
     60, 61, 62, 63,  92, 93, 94, 95,   101,
@@ -336,17 +336,8 @@ class LaunchpadMIDI
 
   # Find the output and input devices for a connected Launchpad
   def LaunchpadMIDI.find_output_and_input
-    devs = UniMIDI::Device.all.find_all {|dev| dev.name =~ DEVICE_NAME_RE }
-    input, output = nil, nil
-    devs.each do |dev|
-      case dev.type
-      when :input
-        input = dev
-      when :output
-        output = dev
-      else
-      end
-    end
+    output = UniMIDI::Output.all.find {|dev| dev.name =~ DEVICE_NAME_RE }
+    input = UniMIDI::Input.all.find {|dev| dev.name =~ DEVICE_NAME_RE }
     return output, input
   end
 
