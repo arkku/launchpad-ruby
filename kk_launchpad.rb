@@ -10,7 +10,7 @@
 # results may be unpredictable. Manual device selection should be
 # if support for multiple Launchpads is required.
 #
-# Copyright (c) 2014 Kimmo Kulovesi, http://arkku.com/
+# Copyright (c) 2014-2015 Kimmo Kulovesi, http://arkku.com/
 # Use and distribute freely.
 # Mark modified copies as such, do not remove the original attribution.
 # ABSOLUTELY NO WARRANTY - USE AT YOUR OWN RISK ONLY!
@@ -39,6 +39,15 @@ class LaunchpadMIDI
       end
     end
   end
+
+  NOVATION_MANUFACTURER_ID = [ 0x00, 0x20, 0x29 ]
+
+  LAUNCHPAD_DEVICE_ID = {
+    [ 0x20, 0x00 ] => :launchpad_s,
+    [ 0x69, 0x00 ] => :launchpad_mk2,
+    [ 0x51, 0x00 ] => :launchpad_pro,
+    [ 0x36, 0x00 ] => :launchpad_mini
+  }
 
   attr_accessor :midi_to
   attr_accessor :midi_from
@@ -261,6 +270,20 @@ class LaunchpadMIDI
 
   # The column, row, and action for the MIDI message (array of bytes).
   # The action is true if the button was pressed down, false if released.
+  # Additionally the SysEx device inquiry message is parsed, in which
+  # case `column` and `row` are both `nil`, and `action` is a symbol
+  # denoting the type of device:
+  #
+  #    :launchpad_s
+  #    :launchpad_mk2
+  #    :launchpad_pro
+  #    :launchpad_mini
+  #    :unknown_novation_device
+  #    :unknown_device
+  #
+  # Note that the original Launchpad does not respond to device inquiry
+  # and cannot be identified by this method (however, it can usually be
+  # identified by its USB id as it does not have other MIDI connectivity).
   #
   # (It is assumed that MIDI running status and realtime messages are handled
   # before passing the message to this method, i.e., the message must begin
@@ -272,9 +295,21 @@ class LaunchpadMIDI
       return *xy_for_note(msg[1]), pressed
     when 0xB0
       return *xy_for_controller(msg[1]), pressed
-    else
-      return nil, nil, nil
+    when 0xF0
+      launchpad_id = nil
+      if msg.length >= 10 && msg[1] == 0x7E && msg[3] == 0x06
+        device_id = msg[2]
+        manufacturer = msg[5..7]
+        device_type = msg[8..9]
+        if manufacturer == NOVATION_MANUFACTURER_ID
+          launchpad_id = LAUNCHPAD_DEVICE_ID[device_type] || :unknown_novation_device
+        else
+          launchpad_id = :unknown_device
+        end
+      end
+      return nil, nil, launchpad_id
     end
+    return nil, nil, nil
   end
 
   # MIDI command to set the bits for the given column and row
@@ -316,6 +351,12 @@ class LaunchpadMIDI
     end
   end
 
+  # Send a device identification inquiry MIDI message.
+  # The original Launchpad does not respond to this, but other versions do.
+  def send_inquiry
+    send_midi(0xF0, 0x7E, 0x7F, 0x06, 0x01, 0xF7)
+  end
+
   # Yield each pending input message from the Launchpad as an array of bytes.
   def each_incoming_message
     return to_enum(__method__) unless block_given?
@@ -329,8 +370,8 @@ class LaunchpadMIDI
   # pressed down and false if it was released.
   def each_action
     each_incoming_message do |msg|
-      column, row, pressed = parse_midi_message(msg)
-      yield column, row, pressed if column && row
+      column, row, action = parse_midi_message(msg)
+      yield column, row, action unless action.nil?
     end
   end
 
