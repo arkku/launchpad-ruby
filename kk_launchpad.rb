@@ -20,7 +20,7 @@ require 'unimidi'
 
 class LaunchpadMIDI
 
-  DEVICE_NAME_RE = /^(Novation|Focusrite).* Launchpad.*/
+  DEVICE_NAME_RE = /.* Launchpad.*/
   DRUM_RACK_NOTES = [
     64, 65, 66, 67,  96, 97, 98, 99,   100,
     60, 61, 62, 63,  92, 93, 94, 95,   101,
@@ -55,6 +55,8 @@ class LaunchpadMIDI
   def initialize(midi_out, midi_in = nil)
     @midi_from = midi_in
     @midi_to = midi_out
+    @midi_from.open
+    @midi_to.open
     @last_command = nil
     @mapping = :xy
     @double_buffer = false
